@@ -25,15 +25,19 @@ type Transaction struct {
 	Currency string
 }
 
-var Transactions []*Transaction
+type TransactionsList struct {
+	Transactions []Transaction
+}
 
-func (ob *OrderBook) AddOrder(order Order) {
+func (ob *OrderBook) AddOrder(order Order, tl *TransactionsList) {
 	if order.IsBuy {
 		ob.BuyOrders = append(ob.BuyOrders, order)
 		ob.SortOrders()
+		ob.MatchOrders(tl)
 	} else {
 		ob.SellOrders = append(ob.SellOrders, order)
 		ob.SortOrders()
+		ob.MatchOrders(tl)
 	}
 }
 
@@ -47,13 +51,13 @@ func (ob *OrderBook) SortOrders() {
 	})
 }
 
-func (ob *OrderBook) MatchOrders() {
+func (ob *OrderBook) MatchOrders(tl *TransactionsList) {
 	for len(ob.BuyOrders) > 0 && len(ob.SellOrders) > 0 {
 		buyOrder := ob.BuyOrders[0]
 		sellOrder := ob.SellOrders[0]
 		if sellOrder.Price <= buyOrder.Price {
-			addTransaction(buyOrder)
-			addTransaction(sellOrder)
+			tl.AddTransaction(buyOrder)
+			tl.AddTransaction(sellOrder)
 			ob.RemoveOrder(buyOrder)
 			ob.RemoveOrder(sellOrder)
 		} else {
@@ -106,7 +110,7 @@ func (ob *OrderBook) GetOrdersList(getType int) {
 	}
 }
 
-func addTransaction(order Order) {
+func (tl *TransactionsList) AddTransaction(order Order) {
 	var transaction *Transaction
 	transaction = new(Transaction)
 
@@ -118,13 +122,28 @@ func addTransaction(order Order) {
 		transaction.Value = -order.Amount
 	}
 
-	Transactions = append(Transactions, transaction)
+	tl.Transactions = append(tl.Transactions, *transaction)
 
 }
 
-func getTransactionsList() {
-	for _, transaction := range Transactions {
+func (tl *TransactionsList) GetTransactionsList() {
+	for _, transaction := range tl.Transactions {
 		fmt.Printf("| User | %v | | %v | | %v |\n", transaction.UserID, transaction.Value, transaction.Currency)
+	}
+}
+
+func showMenu() {
+	menu := []string{"\nHello, dear UserID. What you want to do?(Input number of operation):\n",
+		"1. Add buy order\n",
+		"2. Add sell order\n",
+		"3. Watch all orders\n",
+		"4. Watch buy orders\n",
+		"5. Watch sell orders\n",
+		"6. Show transactions list\n",
+		"7. Change currency\n"}
+
+	for _, s := range menu {
+		fmt.Print(s)
 	}
 }
 
@@ -161,6 +180,9 @@ func main() {
 	}
 	orderUSD := Order{Currency: "USD"}
 
+	transactionsListUAH := TransactionsList{}
+	transactionsListUSD := TransactionsList{}
+
 	orderBookUAH.SortOrders()
 	orderBookUSD.SortOrders()
 
@@ -177,14 +199,7 @@ func main() {
 			//UAH currency
 			case 1:
 				userChoice := 0
-				fmt.Println("\nHello, dear UserID. What you want to do?(Input number of operation):\n" +
-					"1. Add buy order\n" +
-					"2. Add sell order\n" +
-					"3. Watch all orders\n" +
-					"4. Watch buy orders\n" +
-					"5. Watch sell orders\n" +
-					"6. Show transactions list\n" +
-					"7. Change currency")
+				showMenu()
 				fmt.Scanln(&userChoice)
 
 				switch userChoice {
@@ -198,8 +213,7 @@ func main() {
 					fmt.Scanln(&orderUAH.Amount)
 					orderUAH.TotalPrice = orderUAH.Price * orderUAH.Amount
 					orderUAH.IsBuy = true
-					orderBookUAH.AddOrder(orderUAH)
-					orderBookUAH.MatchOrders()
+					orderBookUAH.AddOrder(orderUAH, &transactionsListUAH)
 
 				//Add UAH sell order
 				case 2:
@@ -211,8 +225,7 @@ func main() {
 					fmt.Scanln(&orderUAH.Amount)
 					orderUAH.TotalPrice = orderUAH.Price * orderUAH.Amount
 					orderUAH.IsBuy = false
-					orderBookUAH.AddOrder(orderUAH)
-					orderBookUSD.MatchOrders()
+					orderBookUAH.AddOrder(orderUAH, &transactionsListUAH)
 
 				//Get UAH all orders
 				case 3:
@@ -228,7 +241,7 @@ func main() {
 
 				//Get UAH transactions list
 				case 6:
-					getTransactionsList()
+					transactionsListUAH.GetTransactionsList()
 
 				//Change currency
 				case 7:
@@ -241,14 +254,7 @@ func main() {
 			//USD currency
 			case 2:
 				userChoice := 0
-				fmt.Println("\nHello, dear UserID. What you want to do?(Input number of operation):\n" +
-					"1. Add buy order\n" +
-					"2. Add sell order\n" +
-					"3. Watch all orders\n" +
-					"4. Watch buy orders\n" +
-					"5. Watch sell orders\n" +
-					"6. Show transactions list\n" +
-					"7. Change currency")
+				showMenu()
 				fmt.Scanln(&userChoice)
 
 				switch userChoice {
@@ -263,8 +269,7 @@ func main() {
 					fmt.Scanln(&orderUSD.Amount)
 					orderUSD.TotalPrice = orderUSD.Price * orderUSD.Amount
 					orderUSD.IsBuy = true
-					orderBookUSD.AddOrder(orderUSD)
-					orderBookUSD.MatchOrders()
+					orderBookUSD.AddOrder(orderUSD, &transactionsListUSD)
 
 				//Add USD sell order
 				case 2:
@@ -276,8 +281,7 @@ func main() {
 					fmt.Scanln(&orderUSD.Amount)
 					orderUSD.TotalPrice = orderUSD.Price * orderUSD.Amount
 					orderUSD.IsBuy = false
-					orderBookUSD.AddOrder(orderUSD)
-					orderBookUSD.MatchOrders()
+					orderBookUSD.AddOrder(orderUSD, &transactionsListUSD)
 
 				//Get USD all orders
 				case 3:
@@ -293,7 +297,7 @@ func main() {
 
 				//Get transactions list
 				case 6:
-					getTransactionsList()
+					transactionsListUSD.GetTransactionsList()
 
 				//Change currency
 				case 7:
