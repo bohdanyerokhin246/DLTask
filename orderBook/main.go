@@ -37,15 +37,20 @@ func (order *Order) InputOrder(isBuy bool, ob *OrderBook, tl *TransactionsList) 
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Println("Input UserID, price and amount of currency. Example: 11 40 115")
 	for scanner.Scan() {
-		fmt.Println("If you want to stop input press Ctrl+Z")
+		fmt.Println("\nIf you want to stop input press Ctrl+Z")
 		fmt.Println("Input UserID, price and amount of currency. Example: 11 40 115")
 		str := strings.Split(scanner.Text(), " ")
-		order.UserID, _ = strconv.ParseInt(str[0], 10, 64)
-		order.Price, _ = strconv.ParseInt(str[1], 10, 64)
-		order.Amount, _ = strconv.ParseInt(str[2], 10, 64)
-		order.TotalPrice = order.Price * order.Amount
-		order.IsBuy = isBuy
-		ob.AddOrder(order, tl)
+		if len(str) == 3 {
+			order.UserID, _ = strconv.ParseInt(str[0], 10, 64)
+			order.Price, _ = strconv.ParseInt(str[1], 10, 64)
+			order.Amount, _ = strconv.ParseInt(str[2], 10, 64)
+			order.TotalPrice = order.Price * order.Amount
+			order.IsBuy = isBuy
+			ob.AddOrder(order, tl)
+		} else {
+			fmt.Println("\nInput order correctly. Example:11 40 115 ")
+			continue
+		}
 	}
 }
 
@@ -187,7 +192,10 @@ func main() {
 			"1. UAH\n" +
 			"2. USD")
 
-		fmt.Scanln(&currencyChoice)
+		_, err := fmt.Scanln(&currencyChoice)
+		if err != nil {
+			fmt.Printf("Error scaning currencyChoice. Error is %v", err)
+		}
 
 		for i := 1; i > 0; {
 			switch currencyChoice {
@@ -195,7 +203,10 @@ func main() {
 			case 1:
 				userChoice := 0
 				showMenu()
-				fmt.Scanln(&userChoice)
+				_, err = fmt.Scanln(&userChoice)
+				if err != nil {
+					fmt.Printf("Error scaning userChoice. Error is %v", err)
+				}
 
 				switch userChoice {
 				//Add UAH buy order
@@ -234,7 +245,10 @@ func main() {
 			case 2:
 				userChoice := 0
 				showMenu()
-				fmt.Scanln(&userChoice)
+				_, err = fmt.Scanln(&userChoice)
+				if err != nil {
+					fmt.Printf("Error scaning userChoice. Error is %v", err)
+				}
 
 				switch userChoice {
 
