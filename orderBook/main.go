@@ -1,8 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"sort"
+	"strconv"
+	"strings"
 )
 
 type Order struct {
@@ -29,13 +33,29 @@ type TransactionsList struct {
 	Transactions []Transaction
 }
 
-func (ob *OrderBook) AddOrder(order Order, tl *TransactionsList) {
+func (order *Order) InputOrder(isBuy bool, ob *OrderBook, tl *TransactionsList) {
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Println("Input UserID, price and amount of currency. Example: 11 40 115")
+	for scanner.Scan() {
+		fmt.Println("If you want to stop input press Ctrl+Z")
+		fmt.Println("Input UserID, price and amount of currency. Example: 11 40 115")
+		str := strings.Split(scanner.Text(), " ")
+		order.UserID, _ = strconv.ParseInt(str[0], 10, 64)
+		order.Price, _ = strconv.ParseInt(str[1], 10, 64)
+		order.Amount, _ = strconv.ParseInt(str[2], 10, 64)
+		order.TotalPrice = order.Price * order.Amount
+		order.IsBuy = isBuy
+		ob.AddOrder(order, tl)
+	}
+}
+
+func (ob *OrderBook) AddOrder(order *Order, tl *TransactionsList) {
 	if order.IsBuy {
-		ob.BuyOrders = append(ob.BuyOrders, order)
+		ob.BuyOrders = append(ob.BuyOrders, *order)
 		ob.SortOrders()
 		ob.MatchOrders(tl)
 	} else {
-		ob.SellOrders = append(ob.SellOrders, order)
+		ob.SellOrders = append(ob.SellOrders, *order)
 		ob.SortOrders()
 		ob.MatchOrders(tl)
 	}
@@ -51,6 +71,8 @@ func (ob *OrderBook) SortOrders() {
 	})
 }
 
+// MatchOrders check if top SellOrder price <= top BuyOrder price.
+// If condition is true crete transaction and remove Order from OrderBook
 func (ob *OrderBook) MatchOrders(tl *TransactionsList) {
 	for len(ob.BuyOrders) > 0 && len(ob.SellOrders) > 0 {
 		buyOrder := ob.BuyOrders[0]
@@ -66,6 +88,7 @@ func (ob *OrderBook) MatchOrders(tl *TransactionsList) {
 	}
 }
 
+// RemoveOrder remove Order from OrderBook
 func (ob *OrderBook) RemoveOrder(order Order) {
 	if order.IsBuy {
 		for i, o := range ob.BuyOrders {
@@ -149,42 +172,14 @@ func showMenu() {
 
 func main() {
 
-	orderBookUAH := OrderBook{
-		BuyOrders: []Order{
-			{UserID: 1, Price: 40, Amount: 115, TotalPrice: 4600, Currency: "UAH", IsBuy: true},
-			{UserID: 2, Price: 41, Amount: 111, TotalPrice: 4551, Currency: "UAH", IsBuy: true},
-			{UserID: 3, Price: 42, Amount: 20, TotalPrice: 840, Currency: "UAH", IsBuy: true},
-			{UserID: 4, Price: 43, Amount: 256, TotalPrice: 11008, Currency: "UAH", IsBuy: true},
-			{UserID: 5, Price: 44, Amount: 189, TotalPrice: 8316, Currency: "UAH", IsBuy: true}},
-		SellOrders: []Order{
-			{UserID: 6, Price: 44, Amount: 78, TotalPrice: 3432, Currency: "UAH", IsBuy: false},
-			{UserID: 7, Price: 43, Amount: 14, TotalPrice: 602, Currency: "UAH", IsBuy: false},
-			{UserID: 8, Price: 42, Amount: 128, TotalPrice: 5376, Currency: "UAH", IsBuy: false},
-			{UserID: 9, Price: 41, Amount: 99, TotalPrice: 4059, Currency: "UAH", IsBuy: false},
-			{UserID: 10, Price: 40, Amount: 64, TotalPrice: 2560, Currency: "UAH", IsBuy: false}},
-	}
 	orderUAH := Order{Currency: "UAH"}
-	orderBookUSD := OrderBook{
-		BuyOrders: []Order{
-			{UserID: 11, Price: 40, Amount: 115, TotalPrice: 4600, Currency: "USD", IsBuy: true},
-			{UserID: 12, Price: 41, Amount: 111, TotalPrice: 4551, Currency: "USD", IsBuy: true},
-			{UserID: 13, Price: 42, Amount: 20, TotalPrice: 840, Currency: "USD", IsBuy: true},
-			{UserID: 14, Price: 43, Amount: 256, TotalPrice: 11008, Currency: "USD", IsBuy: true},
-			{UserID: 15, Price: 44, Amount: 189, TotalPrice: 8316, Currency: "USD", IsBuy: true}},
-		SellOrders: []Order{
-			{UserID: 16, Price: 44, Amount: 78, TotalPrice: 3432, Currency: "USD", IsBuy: false},
-			{UserID: 17, Price: 43, Amount: 14, TotalPrice: 602, Currency: "USD", IsBuy: false},
-			{UserID: 18, Price: 42, Amount: 128, TotalPrice: 5376, Currency: "USD", IsBuy: false},
-			{UserID: 19, Price: 41, Amount: 99, TotalPrice: 4059, Currency: "USD", IsBuy: false},
-			{UserID: 20, Price: 40, Amount: 64, TotalPrice: 2560, Currency: "USD", IsBuy: false}},
-	}
 	orderUSD := Order{Currency: "USD"}
+
+	orderBookUAH := OrderBook{}
+	orderBookUSD := OrderBook{}
 
 	transactionsListUAH := TransactionsList{}
 	transactionsListUSD := TransactionsList{}
-
-	orderBookUAH.SortOrders()
-	orderBookUSD.SortOrders()
 
 	for {
 		currencyChoice := 0
@@ -205,27 +200,11 @@ func main() {
 				switch userChoice {
 				//Add UAH buy order
 				case 1:
-					fmt.Println("Input your user ID")
-					fmt.Scanln(&orderUAH.UserID)
-					fmt.Println("Input price")
-					fmt.Scanln(&orderUAH.Price)
-					fmt.Println("Input amount")
-					fmt.Scanln(&orderUAH.Amount)
-					orderUAH.TotalPrice = orderUAH.Price * orderUAH.Amount
-					orderUAH.IsBuy = true
-					orderBookUAH.AddOrder(orderUAH, &transactionsListUAH)
+					orderUAH.InputOrder(true, &orderBookUAH, &transactionsListUAH)
 
 				//Add UAH sell order
 				case 2:
-					fmt.Println("Input your user ID")
-					fmt.Scanln(&orderUAH.UserID)
-					fmt.Println("Input price")
-					fmt.Scanln(&orderUAH.Price)
-					fmt.Println("Input amount")
-					fmt.Scanln(&orderUAH.Amount)
-					orderUAH.TotalPrice = orderUAH.Price * orderUAH.Amount
-					orderUAH.IsBuy = false
-					orderBookUAH.AddOrder(orderUAH, &transactionsListUAH)
+					orderUAH.InputOrder(false, &orderBookUAH, &transactionsListUAH)
 
 				//Get UAH all orders
 				case 3:
@@ -261,27 +240,11 @@ func main() {
 
 				//Add USD buy order
 				case 1:
-					fmt.Println("Input your user ID")
-					fmt.Scanln(&orderUSD.UserID)
-					fmt.Println("Input price")
-					fmt.Scanln(&orderUSD.Price)
-					fmt.Println("Input amount")
-					fmt.Scanln(&orderUSD.Amount)
-					orderUSD.TotalPrice = orderUSD.Price * orderUSD.Amount
-					orderUSD.IsBuy = true
-					orderBookUSD.AddOrder(orderUSD, &transactionsListUSD)
+					orderUSD.InputOrder(true, &orderBookUSD, &transactionsListUSD)
 
 				//Add USD sell order
 				case 2:
-					fmt.Println("Input your user ID")
-					fmt.Scanln(&orderUSD.UserID)
-					fmt.Println("Input price")
-					fmt.Scanln(&orderUSD.Price)
-					fmt.Println("Input amount")
-					fmt.Scanln(&orderUSD.Amount)
-					orderUSD.TotalPrice = orderUSD.Price * orderUSD.Amount
-					orderUSD.IsBuy = false
-					orderBookUSD.AddOrder(orderUSD, &transactionsListUSD)
+					orderUSD.InputOrder(false, &orderBookUSD, &transactionsListUSD)
 
 				//Get USD all orders
 				case 3:
