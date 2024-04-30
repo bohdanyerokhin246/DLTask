@@ -15,3 +15,9 @@ go run .
 cd studentCapital
 go run .
 ```
+
+### longArithmetic
+```sh
+cd longArithmetic
+go run .
+```
