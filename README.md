@@ -21,3 +21,13 @@ go run .
 cd longArithmetic
 go run .
 ```
+
+# Estimated time
+```sh
+orderBook
+~ 20 hours
+studentCapital
+~ 15 hours
+longArithmetic
+~ 10 hours
+```
